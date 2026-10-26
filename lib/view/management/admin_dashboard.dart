@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ondolbom_admin/vm/auth/admin_auth_vm.dart';
 import 'package:ondolbom_admin/vm/management/admin_records_vm.dart';
+import 'package:ondolbom_admin/view/management/inquiry_answers.dart';
+import 'package:ondolbom_admin/view/management/content_manager.dart';
+import 'package:ondolbom_admin/view/management/inquiry_status.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({super.key});
@@ -120,10 +123,11 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         );
       case 2:
         return ExpansionTile(
+          key: ValueKey(row['question_seq']),
           tilePadding: EdgeInsets.zero,
           title: Text(value(row, 'question_title')),
           subtitle: Text(
-            '${value(row, 'user_name')} · ${value(row, 'questioned_at')} · 답변 ${value(row, 'answer_count')}개',
+            '${value(row, 'user_name')} · ${value(row, 'questioned_at')} · ${(row['answer_count'] as num? ?? 0) > 0 ? '답변 완료' : '답변 대기'} · ${row['processing_status_label'] ?? '처리 상태 DB 적용 대기'}',
           ),
           children: [
             Align(
@@ -132,6 +136,16 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                 padding: const EdgeInsets.all(16),
                 child: SelectableText(value(row, 'question_content')),
               ),
+            ),
+            InquiryAnswers(
+              id: row['question_seq'] as int,
+              onSaved: () => ref.invalidate(adminRecordsProvider),
+            ),
+            InquiryStatus(
+              key: ValueKey(
+                '${row['question_seq']}-${row['processing_status']}-${row['status_updated_at']}',
+              ),
+              row: row,
             ),
           ],
         );
@@ -154,8 +168,10 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget content() {
-    // FAQ 저장 구조 확인 전에는 임의 데이터나 별도 저장소를 만들지 않는다.
-    if (selected == 3) return const SizedBox.shrink();
+    if (selected == 4) return const ContentManager(faq: false);
+    if (selected == 3) {
+      return const ContentManager(key: ValueKey('faq'), faq: true);
+    }
     final request = (section: sections[selected], page: page, query: query);
     final data = ref.watch(adminRecordsProvider(request));
     return data.when(
