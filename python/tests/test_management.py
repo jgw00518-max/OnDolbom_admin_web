@@ -6,6 +6,31 @@ from python.features.auth.router import require_admin
 from python.features.management.router import QUERIES
 
 class ManagementTests(TestCase):
+    def test_search_is_parameterized_before_pagination(self):
+        app.dependency_overrides[require_admin] = lambda: object()
+        for section, count in [('users', 3), ('rooms', 2)]:
+            connection = MagicMock()
+            cursor = connection.cursor.return_value.__enter__.return_value
+            cursor.fetchall.return_value = []
+            with TestClient(app) as client, patch('python.features.management.router.connect', return_value=connection):
+                response = client.get('/admin/management/' + section, params={'q': "%'_", 'offset': 30})
+            self.assertEqual(response.status_code, 200)
+            sql, params = cursor.execute.call_args.args
+            self.assertNotIn("%'_", sql)
+            self.assertIn('LOCATE', sql)
+            self.assertEqual(params, tuple(["%'_"] * count + [31, 30]))
+
+    def test_room_detail_missing_and_authentication(self):
+        with TestClient(app) as client, patch('python.features.management.router.connect') as connect:
+            self.assertEqual(client.get('/admin/management/rooms/missing').status_code, 401)
+            connect.assert_not_called()
+            app.dependency_overrides[require_admin] = lambda: object()
+            connection = connect.return_value
+            connection.cursor.return_value.__enter__.return_value.fetchone.return_value = None
+            self.assertEqual(client.get('/admin/management/rooms/missing').status_code, 404)
+            connection.rollback.assert_called_once()
+            connection.close.assert_called_once()
+
     def tearDown(self):
         app.dependency_overrides.clear()
 
