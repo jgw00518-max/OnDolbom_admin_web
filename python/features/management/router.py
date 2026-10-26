@@ -3,6 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pymysql import MySQLError
 from python.database import connect
 from python.features.auth.router import require_admin
+from python.features.schema_support import status_ready
+from python.features.inquiries.status import STATUS_LABELS
 
 router = APIRouter(dependencies=[Depends(require_admin)])
 QUERIES = {
@@ -20,7 +22,7 @@ QUERIES = {
                    FROM question q LEFT JOIN user u ON u.user_id = q.user_id
                    WHERE q.question_deleted_at IS NULL
                    ORDER BY q.questioned_at DESC, q.question_seq DESC LIMIT %s OFFSET %s''',
-    'notices': '''SELECT notice_id, notice_title, notice_content, notice_created_at
+    'notices': '''SELECT admin_id, notice_id, notice_title, notice_content, notice_created_at
                  FROM create_notice WHERE notice_deleted_at IS NULL
                  ORDER BY notice_created_at DESC, notice_id LIMIT %s OFFSET %s''',
 }
@@ -36,6 +38,10 @@ def list_records(section: str, limit: int = Query(30, ge=1, le=100),
         with connection.cursor() as cursor:
             cursor.execute('START TRANSACTION READ ONLY')
             sql = QUERIES[section]
+            ready = status_ready(cursor) if section == 'questions' else False
+            if section == 'questions':
+                fields = 'q.processing_status, q.status_updated_at' if ready else 'NULL AS processing_status, NULL AS status_updated_at'
+                sql = sql.replace('SELECT q.question_seq', f'SELECT {fields}, q.question_seq', 1)
             params = []
             if q.strip() and section in ('users', 'rooms'):
                 # LOCATE로 %, _도 와일드카드가 아닌 실제 검색어로 처리한다.
@@ -45,6 +51,10 @@ def list_records(section: str, limit: int = Query(30, ge=1, le=100),
                 params.extend([q.strip()] * len(columns))
             cursor.execute(sql, tuple(params + [limit + 1, offset]))
             rows = cursor.fetchall()
+            if section == 'questions':
+                for row in rows:
+                    row['status_supported'] = ready
+                    row['processing_status_label'] = STATUS_LABELS.get(row.get('processing_status'))
         return {'items': rows[:limit], 'has_more': len(rows) > limit}
     except (MySQLError, ValueError):
         raise HTTPException(503, '데이터를 불러오지 못했습니다. DB 연결을 확인해 주세요.') from None
