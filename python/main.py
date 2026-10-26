@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from python.features.auth.router import router
+from python.features.management.router import router as management_router
 
 app = FastAPI(title="온돌봄 관리자 API")
 settings = {**dotenv_values(Path(__file__).resolve().parent / '.env'), **os.environ}
@@ -18,6 +19,7 @@ origins = [value.strip() for value in settings.get(
 app.add_middleware(CORSMiddleware, allow_origins=origins,
                    allow_methods=['GET'], allow_headers=['Authorization'])
 app.include_router(router, prefix='/admin/auth', tags=['admin-auth'])
+app.include_router(management_router, prefix='/admin/management', tags=['admin-management'])
 
 
 @app.get('/health')

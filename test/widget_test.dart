@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ondolbom_admin/main.dart';
+import 'package:ondolbom_admin/vm/management/admin_records_vm.dart';
 import 'package:ondolbom_admin/model/auth/admin_user.dart';
 import 'package:ondolbom_admin/vm/auth/admin_auth_vm.dart';
 
@@ -78,6 +79,9 @@ void main() {
       ProviderScope(
         overrides: [
           firebaseAuthProvider.overrideWithValue(auth),
+          adminRecordsProvider.overrideWith(
+            (ref, request) async => const AdminRecords([], false),
+          ),
           authSessionProvider.overrideWith((ref) => Stream.value(FakeUser())),
           adminUserProvider.overrideWith(
             (ref) async =>
@@ -88,7 +92,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('관리자 인증 완료'), findsOneWidget);
+    // 기본 테스트 화면은 좁아서 메뉴가 Drawer에 표시된다.
+    expect(find.text('사용자 관리'), findsOneWidget);
+    expect(find.text('표시할 데이터가 없습니다.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Open navigation menu'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('로그아웃'));
     await tester.pumpAndSettle();
     expect(auth.signouts, 1);
