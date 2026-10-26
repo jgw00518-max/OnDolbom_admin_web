@@ -8,7 +8,8 @@ Flutter는 model/view/vm으로, FastAPI는 기능별 router.py로 구성한다.
 
 관리자 회원가입 API는 제공하지 않는다. Firebase 인증 성공만으로 관리자 권한이 생기지 않는다.
 모든 후속 관리자 API는 `python.features.auth.router.require_admin` 의존성을 사용해야 한다.
-현재 관리 화면은 인증 결과 확인용이며 사용자 관리 등 운영 기능은 아직 없다.
+현재 관리 화면은 사용자 관리, 가족 공간 관리, 문의 내역, 공지사항 조회를 제공한다.
+DB 구조와 데이터를 변경하는 기능은 없으며, 자주 묻는 질문은 메뉴만 유지하고 본문 구현은 보류했다.
 
 ## 사전 발급 관리자 등록
 
@@ -55,10 +56,12 @@ ADMIN_WEB_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 
 ## 실행
 
-반드시 `C:\My\ondolbom_admin`에서 실행한다. 가족용 서버와 겹치지 않도록 8001을 쓴다.
+명령은 각자 프로젝트를 내려받은 루트 폴더(`pubspec.yaml`이 있는 폴더)에서 실행한다.
+가족용 서버와 겹치지 않도록 관리자 API는 8001을 쓴다.
 
 ```powershell
 python -m pip install -r python/requirements-dev.txt
+flutter pub get
 python -m uvicorn python.main:app --host 127.0.0.1 --port 8001 --reload
 ```
 
@@ -69,8 +72,39 @@ flutter run -d chrome --web-port 5173 --dart-define=ADMIN_API_BASE_URL=http://lo
 ```
 
 웹 포트를 고정해야 CORS 허용 origin과 일치한다. API 주소나 프로젝트 설정을 바꾸면 앱을 재실행한다.
-다른 PC나 배포 환경은 API 주소와 ADMIN_WEB_ORIGINS를 실제 주소로 변경하며 HTTPS를 사용한다.
+팀원이 자신의 PC에서 웹과 API를 함께 실행할 때도 같은 localhost 주소를 사용한다.
+공용 서버에 연결하거나 배포할 때는 API 주소와 ADMIN_WEB_ORIGINS를 실제 주소로 변경하며 HTTPS를 사용한다.
 `/health`는 프로세스 확인일 뿐 자격증명·DB·관리자 권한 검사는 아니다.
+
+## 팀원 pull 후 VS Code 실행 안내
+
+1. 프로젝트 루트 폴더를 VS Code로 열고 Flutter·Dart 확장을 준비한다.
+2. 위 로컬 환경 안내에 따라 자신의 `python/.env`와 Firebase 서비스 계정 파일 경로를 설정한다.
+   다른 사람 PC의 절대경로를 그대로 사용하지 않는다. 비밀키와 `.env`는 Git에 올리지 않는다.
+3. 위 의존성 설치 명령을 실행하고 Python 서버를 켠다.
+4. 실행 장치를 Chrome으로 선택하고 `lib/main.dart`의 실행 버튼을 누른다.
+   또는 실행 및 디버그에서 `온돌봄 관리자 웹`을 선택하고 F5로 실행한다.
+5. 브라우저 주소가 `http://localhost:5173`인지 확인하고 사전에 등록된 관리자 계정으로 로그인한다.
+
+`.vscode/settings.json`은 Flutter 실행 시 웹 포트 5173과 API 주소 `http://localhost:8001`을 지정한다.
+`.vscode/launch.json`은 Chrome에서 `lib/main.dart`를 실행하는 구성을 제공한다.
+두 파일을 함께 커밋·push해야 팀원이 pull한 뒤 동일한 설정을 사용할 수 있다.
+VS Code 외의 IDE 또는 터미널에서는 위 `flutter run` 명령을 사용하거나 동일한 실행 인자를 설정한다.
+
+고정 포트는 각자 PC에서 사용하므로 팀원끼리 충돌하지 않는다.
+`localhost`는 실행하는 사람 자신의 컴퓨터를 가리키므로 각자 Python 서버도 실행해야 한다.
+관리자 로그인에는 Firebase 인증뿐 아니라 DB의 관리자 UID 등록도 필요하다.
+
+### 실행 오류 확인
+
+- 실행 직후 종료되거나 포트 사용 중 오류가 나면 같은 PC에서 5173을 사용하는 기존 실행을 확인한다.
+  터미널 실행과 IDE 실행을 동시에 켜지 말고, 기존 실행을 해당 터미널의 Ctrl+C 또는 IDE 중지 버튼으로 종료한다.
+- `OPTIONS /admin/auth/me 400`이 나오면 브라우저 주소와 `ADMIN_WEB_ORIGINS`가 일치하는지 확인한다.
+  origin에는 프로토콜·호스트·포트가 포함되며 `localhost`와 `127.0.0.1`은 서로 다른 origin이다.
+- 웹 포트를 바꾸려면 `.vscode/settings.json`(터미널은 `--web-port`)과
+  `python/.env`의 `ADMIN_WEB_ORIGINS`를 함께 변경한다. 변경 후 Flutter와 Python 서버를 재시작한다.
+- API 포트를 바꾸려면 uvicorn의 `--port`와 Flutter의 `ADMIN_API_BASE_URL`을 함께 변경한다.
+- 실행 인자 변경은 Hot Reload로 적용되지 않으므로 Flutter를 완전히 중지한 뒤 다시 실행한다.
 
 ## API
 
@@ -89,7 +123,7 @@ flutter run -d chrome --web-port 5173 --dart-define=ADMIN_API_BASE_URL=http://lo
 ## 확인 순서
 
 1. `/health` 200 확인.
-2. 발급된 관리자 이메일·비밀번호로 로그인 → 관리자 인증 완료 표시 확인.
+2. 발급된 관리자 이메일·비밀번호로 로그인 → 관리자 대시보드 진입 확인.
 3. 새로고침 후에도 서버 관리자 권한 확인을 거쳐 진입하는지 확인.
 4. 로그아웃 후 로그인 화면 복귀 확인.
 5. 일반 가족 계정은 관리자 전용 화면에 들어가지 못하고 거절되는지 확인.

@@ -1,0 +1,6 @@
+{
+  "dart.flutterRunAdditionalArgs": [
+    "--web-port=5173",
+    "--dart-define=ADMIN_API_BASE_URL=http://localhost:8001"
+  ]
+}

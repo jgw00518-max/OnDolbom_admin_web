@@ -27,7 +27,7 @@ QUERIES = {
 
 @router.get('/{section}')
 def list_records(section: str, limit: int = Query(30, ge=1, le=100),
-                 offset: int = Query(0, ge=0)):
+                 offset: int = Query(0, ge=0), q: str = Query('', max_length=100)):
     if section not in QUERIES:
         raise HTTPException(404, '지원하지 않는 메뉴입니다.')
     connection = None
@@ -35,11 +35,48 @@ def list_records(section: str, limit: int = Query(30, ge=1, le=100),
         connection = connect()
         with connection.cursor() as cursor:
             cursor.execute('START TRANSACTION READ ONLY')
-            cursor.execute(QUERIES[section], (limit + 1, offset))
+            sql = QUERIES[section]
+            params = []
+            if q.strip() and section in ('users', 'rooms'):
+                # LOCATE로 %, _도 와일드카드가 아닌 실제 검색어로 처리한다.
+                columns = ('name', 'user_email', 'phone') if section == 'users' else ('care_recipient_name', 'family_room_id')
+                condition = ' AND (' + ' OR '.join(f'LOCATE(%s, COALESCE({column}, \'\')) > 0' for column in columns) + ')'
+                sql = sql.replace(' ORDER BY', condition + ' ORDER BY', 1) if section == 'users' else sql.replace('\n                ORDER BY', condition + '\n                ORDER BY', 1)
+                params.extend([q.strip()] * len(columns))
+            cursor.execute(sql, tuple(params + [limit + 1, offset]))
             rows = cursor.fetchall()
         return {'items': rows[:limit], 'has_more': len(rows) > limit}
     except (MySQLError, ValueError):
         raise HTTPException(503, '데이터를 불러오지 못했습니다. DB 연결을 확인해 주세요.') from None
+    finally:
+        if connection is not None:
+            connection.rollback()
+            connection.close()
+
+
+@router.get('/rooms/{room_id}')
+def room_detail(room_id: str):
+    connection = None
+    try:
+        connection = connect()
+        with connection.cursor() as cursor:
+            cursor.execute('START TRANSACTION READ ONLY')
+            cursor.execute('''SELECT family_room_id, care_recipient_name, birth_date,
+                              care_address, special_notes, created_at
+                              FROM family_room WHERE family_room_id = %s
+                              AND family_room_deleted_at IS NULL''', (room_id,))
+            room = cursor.fetchone()
+            if room is None:
+                raise HTTPException(404, '공간을 찾을 수 없습니다.')
+            cursor.execute('''SELECT u.name, u.user_email, p.is_representative, p.joined_at
+                              FROM participate p JOIN user u ON u.user_id = p.user_id
+                              WHERE p.family_room_id = %s AND p.is_active = 1
+                              AND p.left_at IS NULL AND u.withdrawn_at IS NULL
+                              ORDER BY p.is_representative DESC, p.joined_at, p.participate_seq''', (room_id,))
+            room['members'] = cursor.fetchall()
+        return room
+    except (MySQLError, ValueError):
+        raise HTTPException(503, '공간 정보를 불러오지 못했습니다.') from None
     finally:
         if connection is not None:
             connection.rollback()

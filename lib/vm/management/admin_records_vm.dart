@@ -9,7 +9,10 @@ class AdminRecords {
 }
 
 final adminRecordsProvider = FutureProvider.autoDispose
-    .family<AdminRecords, ({String section, int page})>((ref, request) async {
+    .family<AdminRecords, ({String section, int page, String query})>((
+      ref,
+      request,
+    ) async {
       final user = ref.watch(firebaseAuthProvider).currentUser;
       if (user == null) throw const AdminAuthError('다시 로그인해 주세요.');
       final client = ref.watch(httpClientProvider);
@@ -19,7 +22,7 @@ final adminRecordsProvider = FutureProvider.autoDispose
         final response = await client
             .get(
               Uri.parse(
-                '$base/admin/management/${request.section}?offset=${request.page * 30}',
+                '$base/admin/management/${request.section}?offset=${request.page * 30}&q=${Uri.encodeQueryComponent(request.query)}',
               ),
               headers: {'Authorization': 'Bearer $token'},
             )
@@ -40,4 +43,30 @@ final adminRecordsProvider = FutureProvider.autoDispose
         );
       }
       throw const AdminAuthError('다시 로그인해 주세요.');
+    });
+
+final roomDetailProvider = FutureProvider.autoDispose
+    .family<Map<String, dynamic>, String>((ref, id) async {
+      final user = ref.watch(firebaseAuthProvider).currentUser;
+      if (user == null) throw const AdminAuthError('Login required');
+      final base = ref.watch(apiBaseUrlProvider).replaceAll(RegExp(r'/+$'), '');
+      final client = ref.watch(httpClientProvider);
+      for (var attempt = 0; attempt < 2; attempt++) {
+        final token = await user.getIdToken(attempt == 1);
+        final response = await client
+            .get(
+              Uri.parse(
+                '$base/admin/management/rooms/${Uri.encodeComponent(id)}',
+              ),
+              headers: {'Authorization': 'Bearer $token'},
+            )
+            .timeout(const Duration(seconds: 15));
+        if (response.statusCode == 401 && attempt == 0) continue;
+        if (response.statusCode != 200) {
+          throw const AdminAuthError('공간 정보를 불러오지 못했습니다.');
+        }
+        return jsonDecode(utf8.decode(response.bodyBytes))
+            as Map<String, dynamic>;
+      }
+      throw const AdminAuthError('Login required');
     });

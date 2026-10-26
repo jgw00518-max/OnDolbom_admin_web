@@ -14,9 +14,19 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   static const sections = ['users', 'rooms', 'questions', 'faq', 'notices'];
   int selected = 0;
   int page = 0;
+  String query = '';
+  final searchController = TextEditingController();
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   void select(int index) => setState(() {
     selected = index;
     page = 0;
+    query = '';
+    searchController.clear();
   });
 
   Widget navigation() => Container(
@@ -96,6 +106,12 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         );
       case 1:
         return ListTile(
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) =>
+                RoomDetailDialog(id: row['family_room_id'] as String),
+          ),
+          trailing: const Icon(Icons.chevron_right),
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
           title: Text('${value(row, 'care_recipient_name')} 님의 돌봄 공간'),
           subtitle: Text(
@@ -140,7 +156,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   Widget content() {
     // FAQ 저장 구조 확인 전에는 임의 데이터나 별도 저장소를 만들지 않는다.
     if (selected == 3) return const SizedBox.shrink();
-    final request = (section: sections[selected], page: page);
+    final request = (section: sections[selected], page: page, query: query);
     final data = ref.watch(adminRecordsProvider(request));
     return data.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -226,6 +242,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                                   adminRecordsProvider((
                                     section: sections[selected],
                                     page: page,
+                                    query: query,
                                   )),
                                 ),
                           icon: const Icon(Icons.refresh),
@@ -271,7 +288,36 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(color: const Color(0xFFEFE9E2)),
                       ),
-                      child: content(),
+                      child: Column(
+                        children: [
+                          if (selected == 0 || selected == 1)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: TextField(
+                                controller: searchController,
+                                onSubmitted: (_) => setState(() {
+                                  query = searchController.text.trim();
+                                  page = 0;
+                                }),
+                                decoration: InputDecoration(
+                                  labelText: selected == 0
+                                      ? '이름·이메일·전화번호 검색'
+                                      : '돌봄 대상자 이름·공간 ID 검색',
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                    tooltip: '검색',
+                                    icon: const Icon(Icons.search),
+                                    onPressed: () => setState(() {
+                                      query = searchController.text.trim();
+                                      page = 0;
+                                    }),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          Expanded(child: content()),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -281,5 +327,78 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         ),
       );
     },
+  );
+}
+
+class RoomDetailDialog extends ConsumerWidget {
+  const RoomDetailDialog({super.key, required this.id});
+  final String id;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => AlertDialog(
+    title: const Text('가족 공간 세부 정보'),
+    content: SizedBox(
+      width: 600,
+      child: ref
+          .watch(roomDetailProvider(id))
+          .when(
+            loading: () => const SizedBox(
+              height: 100,
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (_, _) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('공간을 찾을 수 없거나 정보를 불러오지 못했습니다.'),
+                TextButton(
+                  onPressed: () => ref.invalidate(roomDetailProvider(id)),
+                  child: const Text('다시 시도'),
+                ),
+              ],
+            ),
+            data: (room) => SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final field in {
+                    'family_room_id': '공간 ID',
+                    'care_recipient_name': '돌봄 대상자',
+                    'birth_date': '생년월일',
+                    'care_address': '주소',
+                    'special_notes': '특이사항',
+                    'created_at': '생성일',
+                  }.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: SelectableText(
+                        '${field.value}: ${room[field.key] ?? '미등록'}',
+                      ),
+                    ),
+                  const Divider(),
+                  const Text(
+                    '현재 참여 가족',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  if ((room['members'] as List).isEmpty)
+                    const Text('참여 가족이 없습니다.'),
+                  for (final member in room['members'] as List)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        '${member['name'] ?? '미등록'} · ${member['is_representative'] == 1 ? '대표 보호자' : '일반 가족'}',
+                      ),
+                      subtitle: Text('${member['user_email'] ?? '미등록'}'),
+                    ),
+                ],
+              ),
+            ),
+          ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('닫기'),
+      ),
+    ],
   );
 }
