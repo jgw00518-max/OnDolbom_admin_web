@@ -1,3 +1,4 @@
+import 'package:ondolbom_admin/view/management/admin_dashboard.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ondolbom_admin/view/auth/admin_login_view.dart';
@@ -57,23 +58,15 @@ class AdminGate extends ConsumerWidget {
                   ],
                 ),
               ),
-              data: (admin) => Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      admin == null ? '관리자 정보를 확인해 주세요.' : '관리자 인증 완료',
-                      style: const TextStyle(fontSize: 28),
-                    ),
-                    if (admin != null) Text(admin.email ?? admin.id),
-                    if (admin != null) const Text('관리 기능은 이후 단계에서 추가합니다.'),
-                    logout(),
-                  ],
-                ),
-              ),
+              data: (admin) => admin == null
+                  ? const Center(child: Text('관리자 정보를 확인해 주세요.'))
+                  : const AdminDashboard(),
             );
       },
     );
+    if (session.value != null && ref.watch(adminUserProvider).value != null) {
+      return body;
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('온돌봄 관리자')),
       body: body,
