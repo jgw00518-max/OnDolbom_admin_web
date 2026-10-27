@@ -8,6 +8,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from python.features.auth.router import router
+from python.features.management.router import router as management_router
+from python.features.inquiries.router import router as inquiries_router
+from python.features.content.router import router as notices_router, public_router as public_notices_router
+from python.features.faqs.router import router as faqs_router, public_router as public_faqs_router
+from python.features.inquiries.status import router as status_router, user_router as user_inquiries_router
 
 app = FastAPI(title="온돌봄 관리자 API")
 settings = {**dotenv_values(Path(__file__).resolve().parent / '.env'), **os.environ}
@@ -16,8 +21,16 @@ origins = [value.strip() for value in settings.get(
     'ADMIN_WEB_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173'
 ).split(',') if value.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins,
-                   allow_methods=['GET'], allow_headers=['Authorization'])
+                   allow_methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], allow_headers=['Authorization', 'Content-Type'])
 app.include_router(router, prefix='/admin/auth', tags=['admin-auth'])
+app.include_router(management_router, prefix='/admin/management', tags=['admin-management'])
+app.include_router(inquiries_router, prefix='/admin/inquiries', tags=['admin-inquiries'])
+app.include_router(notices_router, prefix='/admin/notices', tags=['admin-notices'])
+app.include_router(public_notices_router, prefix='/notices', tags=['notices'])
+app.include_router(faqs_router, prefix='/admin/faqs', tags=['admin-faqs'])
+app.include_router(public_faqs_router, prefix='/faqs', tags=['faqs'])
+app.include_router(status_router, prefix='/admin/inquiries', tags=['admin-inquiries'])
+app.include_router(user_inquiries_router, prefix='/inquiries', tags=['user-inquiries'])
 
 
 @app.get('/health')
