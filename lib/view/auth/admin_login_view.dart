@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ondolbom_admin/vm/auth/admin_auth_vm.dart';
+import 'package:ondolbom_admin/theme/admin_theme.dart';
 
 /// 사전 발급 계정만 사용한다. 관리자 회원가입 버튼은 제공하지 않는다.
 class AdminLoginView extends ConsumerStatefulWidget {
@@ -34,20 +35,54 @@ class _AdminLoginViewState extends ConsumerState<AdminLoginView> {
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
-        child: SizedBox(
-          width: 400,
+        child: Container(
+          width: 440,
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: AdminColors.border),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D594135),
+                blurRadius: 35,
+                offset: Offset(0, 12),
+              ),
+            ],
+          ),
           child: Form(
             key: _form,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AdminColors.peach,
+                    foregroundColor: AdminColors.ink,
+                    child: Icon(Icons.spa_rounded),
+                  ),
+                ),
+                const SizedBox(height: 24),
                 const Text(
                   '온돌봄 관리자 로그인',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 25,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -.8,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                const Text('사전에 발급된 관리자 계정으로 로그인해 주세요.'),
+                const Text(
+                  '사전에 발급된 관리자 계정으로 로그인해 주세요.',
+                  style: TextStyle(
+                    color: AdminColors.muted,
+                    fontSize: 12,
+                    height: 1.6,
+                  ),
+                ),
                 const SizedBox(height: 24),
                 TextFormField(
                   controller: _email,

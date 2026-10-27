@@ -1,3 +1,4 @@
+import 'package:ondolbom_admin/view/management/admin_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ondolbom_admin/vm/auth/admin_auth_vm.dart';
@@ -5,6 +6,7 @@ import 'package:ondolbom_admin/vm/management/admin_records_vm.dart';
 import 'package:ondolbom_admin/view/management/inquiry_answers.dart';
 import 'package:ondolbom_admin/view/management/content_manager.dart';
 import 'package:ondolbom_admin/view/management/inquiry_status.dart';
+import 'package:ondolbom_admin/theme/admin_theme.dart';
 
 class AdminDashboard extends ConsumerStatefulWidget {
   const AdminDashboard({super.key});
@@ -32,62 +34,180 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     searchController.clear();
   });
 
-  Widget navigation() => Container(
-    width: 250,
-    color: Colors.white,
-    padding: const EdgeInsets.all(20),
-    child: ListView(
-      children: [
-        const SizedBox(height: 20),
-        const Text(
-          '온돌봄',
-          style: TextStyle(
-            fontSize: 30,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF915031),
-          ),
-        ),
-        const Text('운영센터', style: TextStyle(color: Color(0xFF888580))),
-        const SizedBox(height: 30),
-        for (var i = 0; i < labels.length; i++)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                backgroundColor: selected == i
-                    ? const Color(0xFFF5EEE7)
-                    : Colors.white,
-                foregroundColor: const Color(0xFF4D4843),
-                side: const BorderSide(color: Color(0xFFECE5DE)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+  static const menuIcons = [
+    Icons.people_outline_rounded,
+    Icons.home_outlined,
+    Icons.chat_bubble_outline_rounded,
+    Icons.help_outline_rounded,
+    Icons.campaign_outlined,
+  ];
+
+  Widget navigation() {
+    final state = ref.watch(adminAuthVmProvider);
+    final admin = ref.watch(adminUserProvider).value;
+    return Container(
+      width: 252,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: AdminColors.border)),
+      ),
+      padding: const EdgeInsets.fromLTRB(22, 30, 22, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Transform.rotate(
+                angle: -.12,
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: const BoxDecoration(
+                    color: AdminColors.peach,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(13),
+                      topRight: Radius.circular(13),
+                      bottomRight: Radius.circular(13),
+                      bottomLeft: Radius.circular(4),
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.spa_rounded,
+                    size: 22,
+                    color: AdminColors.ink,
+                  ),
                 ),
               ),
-              onPressed: () => select(i),
-              child: Text(labels[i]),
+              const SizedBox(width: 12),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '온돌봄',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1,
+                    ),
+                  ),
+                  Text(
+                    '운영센터',
+                    style: TextStyle(fontSize: 11, color: AdminColors.muted),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 52),
+          const Padding(
+            padding: EdgeInsets.only(left: 12, bottom: 14),
+            child: Text(
+              'MANAGEMENT',
+              style: TextStyle(
+                color: AdminColors.muted,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.8,
+              ),
             ),
           ),
-        const SizedBox(height: 16),
-        Consumer(
-          builder: (context, ref, _) {
-            final state = ref.watch(adminAuthVmProvider);
-            return Column(
+          Expanded(
+            child: ListView(
+              padding: EdgeInsets.zero,
               children: [
-                OutlinedButton(
-                  onPressed: state.isLoading
-                      ? null
-                      : () => ref.read(adminAuthVmProvider.notifier).signOut(),
-                  child: const Text('로그아웃'),
-                ),
-                if (state.hasError) const Text('로그아웃하지 못했습니다. 다시 시도해 주세요.'),
+                for (var i = 0; i < labels.length; i++)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 7),
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        alignment: Alignment.centerLeft,
+                        backgroundColor: selected == i
+                            ? AdminColors.cream
+                            : Colors.transparent,
+                        foregroundColor: selected == i
+                            ? AdminColors.ink
+                            : AdminColors.muted,
+                        padding: const EdgeInsets.symmetric(horizontal: 13),
+                        minimumSize: const Size.fromHeight(47),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13),
+                        ),
+                      ),
+                      onPressed: () => select(i),
+                      child: Row(
+                        children: [
+                          Icon(menuIcons[i], size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            labels[i],
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: selected == i
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
               ],
-            );
-          },
-        ),
-      ],
-    ),
-  );
+            ),
+          ),
+          const Divider(),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              const CircleAvatar(
+                radius: 18,
+                backgroundColor: AdminColors.sage,
+                foregroundColor: AdminColors.ink,
+                child: Text(
+                  '관',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      '관리자',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      admin?.email ?? admin?.id ?? '',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AdminColors.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: state.isLoading
+                  ? null
+                  : () => ref.read(adminAuthVmProvider.notifier).signOut(),
+              icon: const Icon(Icons.logout_rounded, size: 16),
+              label: const Text('로그아웃', style: TextStyle(fontSize: 12)),
+            ),
+          ),
+          if (state.hasError) const Text('로그아웃하지 못했습니다. 다시 시도해 주세요.'),
+        ],
+      ),
+    );
+  }
 
   String value(Map<String, dynamic> row, String key) =>
       row[key]?.toString() ?? '미등록';
@@ -95,17 +215,112 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     switch (selected) {
       case 0:
         final name = value(row, 'name');
-        return ListTile(
-          contentPadding: const EdgeInsets.symmetric(vertical: 12),
-          leading: CircleAvatar(
-            backgroundColor: const Color(0xFFB9C9A4),
-            child: Text(name.characters.take(2).toString()),
-          ),
-          title: Text(
-            name,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text('${value(row, 'user_email')}\n${value(row, 'phone')}'),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 680;
+            final person = Row(
+              children: [
+                CircleAvatar(
+                  radius: 19,
+                  backgroundColor: AdminColors.sageLight,
+                  foregroundColor: const Color(0xFF60704F),
+                  child: Text(
+                    name.characters.take(1).toString(),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        value(row, 'user_email'),
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AdminColors.muted,
+                        ),
+                      ),
+                      if (compact)
+                        Text(
+                          value(row, 'phone'),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: AdminColors.muted,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 18),
+              child: Row(
+                children: [
+                  Expanded(flex: 21, child: person),
+                  if (!compact) ...[
+                    Expanded(
+                      flex: 12,
+                      child: Text(
+                        value(row, 'phone'),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AdminColors.muted,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 10,
+                      child: Text(
+                        value(row, 'registered_at').split('T').first,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AdminColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                  Expanded(
+                    flex: compact ? 7 : 5,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AdminColors.sageLight,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          '활성',
+                          style: TextStyle(
+                            color: Color(0xFF60704F),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       case 1:
         return ListTile(
@@ -192,18 +407,60 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         children: [
           Text(
             '${labels[selected]} · ${page + 1}페이지',
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -.5,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            '현재 페이지에 ${records.items.length}개의 항목이 표시됩니다.',
+            style: const TextStyle(fontSize: 11, color: AdminColors.muted),
           ),
           const SizedBox(height: 16),
+          if (selected == 0)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final compact = constraints.maxWidth < 680;
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFCFAF8),
+                    border: Border(
+                      top: BorderSide(color: AdminColors.border),
+                      bottom: BorderSide(color: AdminColors.border),
+                    ),
+                  ),
+                  child: DefaultTextStyle(
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AdminColors.muted,
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(flex: 21, child: Text('사용자')),
+                        if (!compact) ...[
+                          const Expanded(flex: 12, child: Text('연락처')),
+                          const Expanded(flex: 10, child: Text('가입일')),
+                        ],
+                        Expanded(
+                          flex: compact ? 7 : 5,
+                          child: const Text('상태'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           if (records.items.isEmpty)
             const Padding(
               padding: EdgeInsets.all(32),
               child: Text('표시할 데이터가 없습니다.'),
             ),
-          for (final row in records.items) ...[
-            record(row),
-            const Divider(color: Color(0xFFF0ECE7)),
-          ],
+          for (final row in records.items) ...[record(row), const Divider()],
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -226,123 +483,55 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final wide = constraints.maxWidth >= 850;
-      return Scaffold(
-        backgroundColor: const Color(0xFFFAF7F3),
-        drawer: wide ? null : Drawer(child: navigation()),
-        appBar: wide ? null : AppBar(title: const Text('온돌봄 운영센터')),
-        body: Row(
-          children: [
-            if (wide) navigation(),
-            Expanded(
-              child: Column(
-                children: [
-                  Container(
-                    height: 76,
-                    color: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Row(
-                      children: [
-                        const Text(
-                          '온돌봄 운영센터',
-                          style: TextStyle(color: Color(0xFF8E8982)),
-                        ),
-                        const Spacer(),
-                        IconButton(
-                          tooltip: '새로고침',
-                          onPressed: selected == 3
-                              ? null
-                              : () => ref.invalidate(
-                                  adminRecordsProvider((
-                                    section: sections[selected],
-                                    page: page,
-                                    query: query,
-                                  )),
-                                ),
-                          icon: const Icon(Icons.refresh),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.all(wide ? 32 : 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            labels[selected],
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        if (wide)
-                          const Text(
-                            '운영 대시보드',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      margin: EdgeInsets.fromLTRB(
-                        wide ? 32 : 16,
-                        0,
-                        wide ? 32 : 16,
-                        32,
-                      ),
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(color: const Color(0xFFEFE9E2)),
-                      ),
-                      child: Column(
-                        children: [
-                          if (selected == 0 || selected == 1)
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 20),
-                              child: TextField(
-                                controller: searchController,
-                                onSubmitted: (_) => setState(() {
-                                  query = searchController.text.trim();
-                                  page = 0;
-                                }),
-                                decoration: InputDecoration(
-                                  labelText: selected == 0
-                                      ? '이름·이메일·전화번호 검색'
-                                      : '돌봄 대상자 이름·공간 ID 검색',
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    tooltip: '검색',
-                                    icon: const Icon(Icons.search),
-                                    onPressed: () => setState(() {
-                                      query = searchController.text.trim();
-                                      page = 0;
-                                    }),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          Expanded(child: content()),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+  Widget build(BuildContext context) => AdminShell(
+    title: labels[selected],
+    navigation: navigation(),
+    actions: [
+      IconButton(
+        tooltip: '\uC0C8\uB85C\uACE0\uCE68',
+        onPressed: selected == 3
+            ? null
+            : () => ref.invalidate(
+                adminRecordsProvider((
+                  section: sections[selected],
+                  page: page,
+                  query: query,
+                )),
+              ),
+        icon: const Icon(Icons.refresh, size: 21),
+      ),
+    ],
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (selected == 0 || selected == 1)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: TextField(
+              controller: searchController,
+              onSubmitted: (_) => setState(() {
+                query = searchController.text.trim();
+                page = 0;
+              }),
+              decoration: InputDecoration(
+                labelText: selected == 0
+                    ? '이름·이메일·전화번호 검색'
+                    : '돌봄 대상자 이름·공간 ID 검색',
+                prefixIcon: const Icon(Icons.search_rounded, size: 19),
+                suffixIcon: IconButton(
+                  tooltip: '검색',
+                  icon: const Icon(Icons.search),
+                  onPressed: () => setState(() {
+                    query = searchController.text.trim();
+                    page = 0;
+                  }),
+                ),
               ),
             ),
-          ],
-        ),
-      );
-    },
+          ),
+        Expanded(child: content()),
+      ],
+    ),
   );
 }
 
