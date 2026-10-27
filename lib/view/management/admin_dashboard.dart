@@ -1,3 +1,5 @@
+export 'package:ondolbom_admin/view/management/room_detail_dialog.dart';
+import 'package:ondolbom_admin/view/management/room_detail_dialog.dart';
 import 'package:ondolbom_admin/view/management/admin_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,8 +17,8 @@ class AdminDashboard extends ConsumerStatefulWidget {
 }
 
 class _AdminDashboardState extends ConsumerState<AdminDashboard> {
-  static const labels = ['사용자 관리', '가족 공간 관리', '문의 내역', '자주 묻는 질문', '공지사항'];
-  static const sections = ['users', 'rooms', 'questions', 'faq', 'notices'];
+  static const labels = ['사용자 관리', '가족 공간 관리', '문의 내역', '공지사항'];
+  static const sections = ['users', 'rooms', 'questions', 'notices'];
   int selected = 0;
   int page = 0;
   String query = '';
@@ -38,7 +40,6 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
     Icons.people_outline_rounded,
     Icons.home_outlined,
     Icons.chat_bubble_outline_rounded,
-    Icons.help_outline_rounded,
     Icons.campaign_outlined,
   ];
 
@@ -383,10 +384,7 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
   }
 
   Widget content() {
-    if (selected == 4) return const ContentManager(faq: false);
-    if (selected == 3) {
-      return const ContentManager(key: ValueKey('faq'), faq: true);
-    }
+    if (selected == 3) return const ContentManager(faq: false);
     final request = (section: sections[selected], page: page, query: query);
     final data = ref.watch(adminRecordsProvider(request));
     return data.when(
@@ -532,78 +530,5 @@ class _AdminDashboardState extends ConsumerState<AdminDashboard> {
         Expanded(child: content()),
       ],
     ),
-  );
-}
-
-class RoomDetailDialog extends ConsumerWidget {
-  const RoomDetailDialog({super.key, required this.id});
-  final String id;
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => AlertDialog(
-    title: const Text('가족 공간 세부 정보'),
-    content: SizedBox(
-      width: 600,
-      child: ref
-          .watch(roomDetailProvider(id))
-          .when(
-            loading: () => const SizedBox(
-              height: 100,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            error: (_, _) => Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('공간을 찾을 수 없거나 정보를 불러오지 못했습니다.'),
-                TextButton(
-                  onPressed: () => ref.invalidate(roomDetailProvider(id)),
-                  child: const Text('다시 시도'),
-                ),
-              ],
-            ),
-            data: (room) => SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (final field in {
-                    'family_room_id': '공간 ID',
-                    'care_recipient_name': '돌봄 대상자',
-                    'birth_date': '생년월일',
-                    'care_address': '주소',
-                    'special_notes': '특이사항',
-                    'created_at': '생성일',
-                  }.entries)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: SelectableText(
-                        '${field.value}: ${room[field.key] ?? '미등록'}',
-                      ),
-                    ),
-                  const Divider(),
-                  const Text(
-                    '현재 참여 가족',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  if ((room['members'] as List).isEmpty)
-                    const Text('참여 가족이 없습니다.'),
-                  for (final member in room['members'] as List)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        '${member['name'] ?? '미등록'} · ${member['is_representative'] == 1 ? '대표 보호자' : '일반 가족'}',
-                      ),
-                      subtitle: Text('${member['user_email'] ?? '미등록'}'),
-                    ),
-                ],
-              ),
-            ),
-          ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('닫기'),
-      ),
-    ],
   );
 }
