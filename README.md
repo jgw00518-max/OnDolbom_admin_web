@@ -86,6 +86,16 @@ FastAPI 관리자 API
 
 사용자 앱과 관리자 웹은 별도의 API를 사용하며, 관리자 API에서 권한을 확인한 후 데이터를 조회하거나 변경합니다.
 
+## Flutter Package
+
+| 분류 | 패키지 | 선언 버전 | 용도 |
+|---|---|---:|---|
+| 상태 관리 | `flutter_riverpod` | `^3.4.3` | 관리자 화면 및 인증 상태 관리 |
+| 서버 통신 | `http` | `^1.6.0` | 관리자 FastAPI와 HTTP 통신 |
+| Firebase | `firebase_core` | `^5.1.0` | Firebase 초기화 및 연결 |
+| 인증 | `firebase_auth` | `^7.0.1` | 관리자 계정의 Firebase 로그인 |
+| UI | `cupertino_icons` | `^1.0.8` | Cupertino 스타일 아이콘 |
+
 ## 주요 구현 사항
 
 | 구현 항목 | 적용 내용 |
